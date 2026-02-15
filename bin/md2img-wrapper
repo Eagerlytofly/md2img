@@ -1,0 +1,11 @@
+#!/bin/bash
+# md2img wrapper - 自动设置 macOS 环境变量
+
+# 设置 Homebrew 库路径（WeasyPrint 需要）
+export DYLD_LIBRARY_PATH="/opt/homebrew/lib:${DYLD_LIBRARY_PATH:-}"
+
+# 激活虚拟环境
+source /Users/wangzhenbo/code/cursor/txt2img/.venv/bin/activate
+
+# 运行实际的 md2img 脚本
+exec python3 /Users/wangzhenbo/.openclaw/workspace/skills/md2img/bin/md2img "$@"

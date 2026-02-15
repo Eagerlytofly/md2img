@@ -1,0 +1,24 @@
+{
+  "name": "md2img",
+  "version": "1.0.0",
+  "description": "Markdown 转图片工具，支持小红书等社交媒体图文生成",
+  "author": "OpenClaw",
+  "homepage": "https://github.com/openclaw/openclaw",
+  "bin": {
+    "md2img": "bin/md2img-wrapper"
+  },
+  "env": {
+    "DYLD_LIBRARY_PATH": "/opt/homebrew/lib"
+  },
+  "python": {
+    "path": "/Users/wangzhenbo/code/cursor/txt2img/.venv/bin/python3",
+    "dependencies": [
+      "weasyprint",
+      "PyMuPDF",
+      "markdown",
+      "Pillow"
+    ]
+  },
+  "platforms": ["darwin", "linux"],
+  "tags": ["markdown", "image", "xiaohongshu", "social-media"]
+}

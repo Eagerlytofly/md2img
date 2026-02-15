@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+"""
+md2img - Markdown 转图片工具
+封装原有的 txt2img 项目，提供简洁的命令行接口
+"""
+
+import argparse
+import sys
+from pathlib import Path
+
+# 添加原始项目路径
+TXT2IMG_ROOT = Path("/Users/wangzhenbo/code/cursor/txt2img")
+if str(TXT2IMG_ROOT) not in sys.path:
+    sys.path.insert(0, str(TXT2IMG_ROOT))
+
+try:
+    from md2img import md_to_images, XIAOHONGSHU_3_4, XIAOHONGSHU_1_1, XIAOHONGSHU_2_3, XIAOHONGSHU_4_3
+except ImportError as e:
+    print(f"错误：无法导入 md2img 模块。请确保已安装依赖：{e}", file=sys.stderr)
+    print("运行: pip install weasyprint PyMuPDF markdown Pillow", file=sys.stderr)
+    sys.exit(1)
+
+
+# 预设尺寸映射
+SIZE_PRESETS = {
+    "3:4": XIAOHONGSHU_3_4,
+    "1:1": XIAOHONGSHU_1_1,
+    "2:3": XIAOHONGSHU_2_3,
+    "4:3": XIAOHONGSHU_4_3,
+}
+
+
+def parse_size(size_str: str) -> tuple:
+    """解析尺寸字符串为 (宽, 高) 元组"""
+    if size_str in SIZE_PRESETS:
+        return SIZE_PRESETS[size_str]
+    
+    # 尝试解析自定义格式 like "1200x1600"
+    try:
+        w, h = map(int, size_str.lower().split("x"))
+        return (w, h)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"无效尺寸: {size_str}。使用预设 (3:4, 1:1, 2:3, 4:3) 或格式 like 1200x1600"
+        )
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Markdown 转图片工具 - 支持小红书等社交媒体图文生成",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例:
+  %(prog)s                          # 从 stdin 读取 Markdown
+  %(prog)s input.md                 # 从文件读取
+  %(prog)s -o ./output -b post      # 指定输出目录和文件名
+  %(prog)s --size 3:4 input.md      # 小红书 3:4 竖版
+  %(prog)s --size 1:1 input.md      # 正方形
+  echo "# 标题" | %(prog)s          # 管道输入
+        """
+    )
+    
+    parser.add_argument(
+        "input",
+        nargs="?",
+        default="-",
+        help="Markdown 文件路径，不传或传 - 表示从 stdin 读取 (默认: -)"
+    )
+    
+    parser.add_argument(
+        "-o", "--output-dir",
+        default=".",
+        help="输出目录 (默认: 当前目录)"
+    )
+    
+    parser.add_argument(
+        "-b", "--basename",
+        default="md2img_out",
+        help="输出文件名基底 (默认: md2img_out)"
+    )
+    
+    parser.add_argument(
+        "--size",
+        type=parse_size,
+        default=XIAOHONGSHU_3_4,
+        metavar="SIZE",
+        help="""预设尺寸: 3:4 (默认), 1:1, 2:3, 4:3
+或自定义格式: 1200x1600"""
+    )
+    
+    parser.add_argument(
+        "--width",
+        type=int,
+        help="自定义宽度（像素），与 --height 一起使用"
+    )
+    
+    parser.add_argument(
+        "--height",
+        type=int,
+        help="自定义高度（像素），与 --width 一起使用"
+    )
+    
+    parser.add_argument(
+        "--css",
+        metavar="FILE",
+        help="自定义 CSS 文件路径"
+    )
+    
+    parser.add_argument(
+        "-v", "--version",
+        action="version",
+        version="%(prog)s 1.0.0"
+    )
+    
+    args = parser.parse_args()
+    
+    # 处理自定义宽高
+    if args.width and args.height:
+        page_size = (args.width, args.height)
+    else:
+        page_size = args.size
+    
+    # 读取 Markdown 内容
+    try:
+        if args.input == "-":
+            md_content = sys.stdin.read()
+        else:
+            md_path = Path(args.input)
+            if not md_path.exists():
+                print(f"错误: 文件不存在: {md_path}", file=sys.stderr)
+                sys.exit(1)
+            md_content = md_path.read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"错误: 读取输入失败: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    # 读取自定义 CSS
+    extra_css = None
+    if args.css:
+        css_path = Path(args.css)
+        if not css_path.exists():
+            print(f"错误: CSS 文件不存在: {css_path}", file=sys.stderr)
+            sys.exit(1)
+        extra_css = css_path.read_text(encoding="utf-8")
+    
+    # 生成图片
+    try:
+        paths = md_to_images(
+            md_content=md_content,
+            output_dir=args.output_dir,
+            output_basename=args.basename,
+            page_size=page_size,
+            extra_css=extra_css,
+        )
+        
+        # 输出生成的文件路径
+        for p in paths:
+            print(p)
+            
+    except Exception as e:
+        print(f"错误: 生成图片失败: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
