@@ -19,16 +19,18 @@ md2img - Markdown 转图片 Skill
     )
 """
 
-import sys
 from pathlib import Path
 
-# 添加原始项目路径
-TXT2IMG_ROOT = Path("/Users/wangzhenbo/code/cursor/txt2img")
-if str(TXT2IMG_ROOT) not in sys.path:
-    sys.path.insert(0, str(TXT2IMG_ROOT))
+# 引用本地的 md2img 模块
+SKILL_DIR = Path(__file__).parent
+MD2IMG_DIR = SKILL_DIR / "md2img"
 
-# 从原始项目导入所有公开 API
+# 从本地 md2img 导入所有公开 API
 try:
+    import sys
+    if str(MD2IMG_DIR) not in sys.path:
+        sys.path.insert(0, str(MD2IMG_DIR))
+    
     from md2img import (
         md_to_images,
         convert,
@@ -47,7 +49,7 @@ try:
         "md2img",
         "XIAOHONGSHU_1_1",
         "XIAOHONGSHU_2_3",
-        "XIAONGSHU_3_4",
+        "XIAOHONGSHU_3_4",
         "XIAOHONGSHU_4_3",
     ]
     
@@ -61,4 +63,4 @@ except ImportError as e:
     
     __all__ = ["md_to_images"]
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"

@@ -1,0 +1,314 @@
+"""
+Markdown → HTML → 图片 转换核心。
+
+优先使用 WeasyPrint（效果最好），可选 imgkit（需系统安装 wkhtmltoimage）。
+支持小红书等平台固定尺寸，长图自动分页为多张。
+"""
+
+from pathlib import Path
+from typing import List, Optional, Tuple, Union
+
+import markdown
+
+# 小红书推荐尺寸（宽×高 px，长边≥1080）
+# 3:4 竖版最优，1:1 正方形，2:3 长图
+XIAOHONGSHU_3_4 = (1242, 1656)   # 推荐，竖屏占满
+XIAOHONGSHU_1_1 = (1080, 1080)    # 正方形
+XIAOHONGSHU_2_3 = (1080, 1620)    # 2:3 长图
+XIAOHONGSHU_4_3 = (1440, 1080)    # 4:3 横版
+
+# 默认内联 CSS：让 Markdown 渲染出来的 HTML 好看、适合截图
+# 针对小红书等社交媒体优化：增大字体，提高可读性
+DEFAULT_CSS = """
+@page { size: 800px; margin: 24px; }
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 28px;
+  line-height: 1.6;
+  color: #24292e;
+  max-width: 100%;
+}
+h1 { font-size: 2.2em; margin: 0.67em 0; border-bottom: 3px solid #eaecef; padding-bottom: 0.3em; font-weight: 700; }
+h2 { font-size: 1.8em; margin: 0.75em 0; border-bottom: 2px solid #eaecef; padding-bottom: 0.3em; font-weight: 600; }
+h3 { font-size: 1.5em; margin: 0.83em 0; font-weight: 600; }
+h4, h5, h6 { font-size: 1.2em; margin: 1em 0; font-weight: 600; }
+p { margin: 0.5em 0 1em; }
+ul, ol { margin: 0.5em 0 1em; padding-left: 2em; }
+li { margin: 0.3em 0; }
+code { background: #f6f8fa; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.85em; }
+pre { background: #f6f8fa; padding: 1em; border-radius: 6px; overflow: auto; }
+pre code { background: none; padding: 0; }
+blockquote { border-left: 6px solid #dfe2e5; margin: 0.5em 0 1em; padding-left: 1em; color: #6a737d; font-size: 1.1em; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #eaecef; padding: 10px 16px; text-align: left; }
+th { font-weight: 600; background: #f6f8fa; }
+a { color: #0366d6; text-decoration: none; }
+a:hover { text-decoration: underline; }
+hr { border: none; border-top: 2px solid #eaecef; margin: 1.5em 0; }
+strong { font-weight: 700; }
+"""
+
+
+def _md_to_html(md_content: str, extras: Optional[list] = None) -> str:
+    """Markdown 字符串 → 完整 HTML 文档（带默认样式）。"""
+    html_body = markdown.markdown(
+        md_content,
+        extensions=extras or ["extra", "codehilite", "toc"],
+    )
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown Export</title>
+  <style>{DEFAULT_CSS}</style>
+</head>
+<body>
+{html_body}
+</body>
+</html>"""
+
+
+def _crop_image_to_content(image_path: Union[str, Path]) -> None:
+    """裁剪图片到内容区域，去掉底部和四周的纯白空白。"""
+    from PIL import Image
+
+    path = Path(image_path)
+    img = Image.open(path).convert("RGB")
+    w, h = img.size
+    gray = img.convert("L")
+    # 非白色(255)置为 255，白色置为 0，getbbox() 即非空白区域
+    thresh = 254
+    mask = gray.point(lambda p: 255 if p < thresh else 0, mode="L")
+    box = mask.getbbox()
+    if not box:
+        return
+    margin = 4
+    box = (
+        max(0, box[0] - margin),
+        max(0, box[1] - margin),
+        min(w, box[2] + margin),
+        min(h, box[3] + margin),
+    )
+    img.crop(box).save(
+        str(path),
+        **({"quality": 95} if path.suffix.lower() in (".jpg", ".jpeg") else {}),
+    )
+
+
+def _html_to_image_weasyprint(
+    html: str,
+    output_path: Union[str, Path],
+    page_size: Optional[Tuple[int, int]] = None,
+) -> List[Path]:
+    """
+    使用 WeasyPrint 将 HTML 转为图片。
+    - page_size 为 (宽, 高) 时：按该尺寸分页，长图输出多张（如 article_1.png, article_2.png），返回路径列表。
+    - page_size 为 None 时：单张长图并裁剪空白，返回单元素列表。
+    """
+    import tempfile
+    import weasyprint
+
+    doc = weasyprint.HTML(string=html)
+    output_path = Path(output_path)
+    ext = output_path.suffix.lower()
+    base_dir = output_path.parent
+    stem, suffix = output_path.stem, output_path.suffix
+
+    if page_size:
+        w, h = page_size
+        # 固定页尺寸，多页 PDF（注入 HTML 确保覆盖默认 @page）
+        from weasyprint import CSS
+        page_css = CSS(string=f"@page {{ size: {w}px {h}px; margin: 28px; }}")
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+            pdf_path = f.name
+        try:
+            # 必须用 stylesheets 覆盖文档内默认 @page，且放在最后
+            doc.write_pdf(pdf_path, stylesheets=[page_css])
+            import fitz  # PyMuPDF
+            pdf_doc = fitz.open(pdf_path)
+            # 96 DPI 使输出像素与 page_size 一致（WeasyPrint px = 1/96 inch）
+            dpi = 96
+            out_paths: List[Path] = []
+            for i in range(len(pdf_doc)):
+                page = pdf_doc[i]
+                pix = page.get_pixmap(dpi=dpi, alpha=False)
+                p = base_dir / f"{stem}_{i + 1}{suffix}"
+                if ext == ".jpg" or ext == ".jpeg":
+                    pix.save(str(p), output="jpeg", quality=95)
+                else:
+                    pix.save(str(p))
+                out_paths.append(p)
+            pdf_doc.close()
+            return out_paths
+        finally:
+            Path(pdf_path).unlink(missing_ok=True)
+
+    # 单张长图，裁剪空白
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+        pdf_path = f.name
+    try:
+        doc.write_pdf(pdf_path)
+        import fitz  # PyMuPDF
+        pdf_doc = fitz.open(pdf_path)
+        page = pdf_doc[0]
+        pix = page.get_pixmap(dpi=150, alpha=False)
+        if ext == ".jpg" or ext == ".jpeg":
+            pix.save(str(output_path), output="jpeg", quality=95)
+        else:
+            pix.save(str(output_path))
+        pdf_doc.close()
+    finally:
+        Path(pdf_path).unlink(missing_ok=True)
+    _crop_image_to_content(output_path)
+    return [output_path]
+
+
+def _html_to_image_imgkit(html: str, output_path: Union[str, Path]) -> None:
+    """使用 imgkit（wkhtmltoimage）将 HTML 转为图片。"""
+    import imgkit
+
+    options = {
+        "format": Path(output_path).suffix.lstrip(".") or "png",
+        "quality": 95,
+        "enable-local-file-access": None,
+    }
+    imgkit.from_string(html, str(output_path), options=options)
+
+
+def convert(
+    md_content: str,
+    output_path: Union[str, Path],
+    *,
+    backend: str = "weasyprint",
+    extra_css: Optional[str] = None,
+    md_extras: Optional[list] = None,
+    page_size: Optional[Tuple[int, int]] = None,
+) -> Union[Path, List[Path]]:
+    """
+    将 Markdown 字符串转为图片。
+
+    :param md_content: Markdown 原文
+    :param output_path: 输出图片路径（.png / .jpg 等）；多页时为基底名，生成 article_1.png, article_2.png ...
+    :param backend: "weasyprint"（推荐）或 "imgkit"
+    :param extra_css: 额外 CSS 字符串，会与默认样式合并
+    :param md_extras: markdown 扩展列表，默认 ["extra", "codehilite", "toc"]
+    :param page_size: 固定页尺寸 (宽, 高) px，如小红书 3:4 用 XIAOHONGSHU_3_4；长图会分多张输出
+    :return: 单张时为 Path，多张时为 List[Path]
+    """
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    html = _md_to_html(md_content, extras=md_extras)
+    if extra_css:
+        html = html.replace("</style>", f"\n{extra_css}\n</style>")
+    # 小红书等固定尺寸：把 @page 注入 HTML 末尾，覆盖默认 800px
+    if page_size:
+        w, h = page_size
+        html = html.replace("</style>", f"\n@page {{ size: {w}px {h}px; margin: 28px; }}\n</style>")
+
+    if backend == "weasyprint":
+        paths = _html_to_image_weasyprint(html, output_path, page_size=page_size)
+        return paths[0] if len(paths) == 1 else paths
+    elif backend == "imgkit":
+        _html_to_image_imgkit(html, output_path)
+        return output_path
+    else:
+        raise ValueError(f'不支持的 backend: {backend!r}，请用 "weasyprint" 或 "imgkit"')
+
+
+def convert_file(
+    md_path: Union[str, Path],
+    output_path: Optional[Union[str, Path]] = None,
+    *,
+    encoding: str = "utf-8",
+    backend: str = "weasyprint",
+    extra_css: Optional[str] = None,
+    md_extras: Optional[list] = None,
+    page_size: Optional[Tuple[int, int]] = None,
+) -> Union[Path, List[Path]]:
+    """
+    将 Markdown 文件转为图片。
+
+    :param md_path: .md 文件路径
+    :param output_path: 输出图片路径；不传则与 md 同目录、同名 .png
+    :param encoding: 读取 md 文件用的编码
+    :param backend: "weasyprint" 或 "imgkit"
+    :param extra_css: 额外 CSS
+    :param md_extras: markdown 扩展列表
+    :param page_size: 固定页尺寸 (宽, 高) px，长图分多张
+    :return: 单张为 Path，多张为 List[Path]
+    """
+    md_path = Path(md_path)
+    if not md_path.exists():
+        raise FileNotFoundError(f"Markdown 文件不存在: {md_path}")
+
+    content = md_path.read_text(encoding=encoding)
+    if output_path is None:
+        output_path = md_path.with_suffix(".png")
+    return convert(
+        content,
+        output_path,
+        backend=backend,
+        extra_css=extra_css,
+        md_extras=md_extras,
+        page_size=page_size,
+    )
+
+
+# 别名
+def md2img(
+    md_content: str,
+    output_path: Union[str, Path],
+    *,
+    backend: str = "weasyprint",
+    **kwargs,
+) -> Union[Path, List[Path]]:
+    """convert 的别名。"""
+    return convert(md_content, output_path, backend=backend, **kwargs)
+
+
+def md_to_images(
+    md_content: str,
+    output_path: Optional[Union[str, Path]] = None,
+    *,
+    output_dir: Optional[Union[str, Path]] = None,
+    output_basename: str = "md2img_out",
+    page_size: Optional[Tuple[int, int]] = None,
+    backend: str = "weasyprint",
+    extra_css: Optional[str] = None,
+    md_extras: Optional[list] = None,
+) -> List[str]:
+    """
+    Markdown 文本转图片，返回图片的**绝对路径**列表。
+
+    :param md_content: Markdown 原文
+    :param output_path: 输出路径（可选）。不传则用 output_dir + output_basename 生成 xxx_1.png, xxx_2.png ...
+    :param output_dir: 输出目录（output_path 未传时生效），默认当前目录
+    :param output_basename: 输出文件名基底（output_path 未传时生效），默认 "md2img_out"
+    :param page_size: 页尺寸 (宽, 高) px，默认 XIAOHONGSHU_3_4；长图自动分多张
+    :param backend: "weasyprint" 或 "imgkit"
+    :param extra_css: 额外 CSS
+    :param md_extras: markdown 扩展列表
+    :return: 生成图片的绝对路径列表，如 ["/path/to/out_1.png", "/path/to/out_2.png"]
+    """
+    if page_size is None:
+        page_size = XIAOHONGSHU_3_4
+    if output_path is None:
+        out_dir = Path(output_dir or ".").resolve()
+        out_dir.mkdir(parents=True, exist_ok=True)
+        output_path = out_dir / f"{output_basename}.png"
+    else:
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+    result = convert(
+        md_content,
+        output_path,
+        backend=backend,
+        extra_css=extra_css,
+        md_extras=md_extras,
+        page_size=page_size,
+    )
+    paths = [result] if isinstance(result, Path) else result
+    return [str(p.resolve()) for p in paths]
