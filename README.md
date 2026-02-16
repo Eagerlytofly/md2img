@@ -49,4 +49,4 @@ brew install pango cairo gdk-pixbuf libffi
 
 ## 链接
 
-- 原始项目：`/Users/wangzhenbo/code/cursor/txt2img`
+- 
