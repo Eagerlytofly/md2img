@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """
 md2img - Markdown 转图片工具
-封装原有的 txt2img 项目，提供简洁的命令行接口
+提供简洁的命令行接口
 """
 
 import argparse
 import sys
 from pathlib import Path
 
-# 添加原始项目路径
-TXT2IMG_ROOT = Path("/Users/wangzhenbo/code/cursor/txt2img")
-if str(TXT2IMG_ROOT) not in sys.path:
-    sys.path.insert(0, str(TXT2IMG_ROOT))
+# 添加技能内置模块路径 (优先使用内置，避免外部依赖)
+# 使用 resolve() 确保获取绝对路径
+SCRIPT_PATH = Path(__file__).resolve()
+SKILL_ROOT = SCRIPT_PATH.parent.parent.resolve()  # skill root: .../md2img/
+# md2img 模块在 SKILL_ROOT/md2img/ 目录下
+# 需要把 SKILL_ROOT 加入 sys.path，这样才能 import md2img
+if str(SKILL_ROOT) not in sys.path:
+    sys.path.insert(0, str(SKILL_ROOT))
 
 try:
     from md2img import md_to_images, XIAOHONGSHU_3_4, XIAOHONGSHU_1_1, XIAOHONGSHU_2_3, XIAOHONGSHU_4_3

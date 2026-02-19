@@ -1,6 +1,6 @@
 # md2img Skill
 
-Markdown 转图片工具 Skill，基于 txt2img 项目封装。
+Markdown 转图片工具 Skill，支持小红书等社交媒体图文生成。
 
 ## 快速开始
 

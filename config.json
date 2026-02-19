@@ -11,7 +11,7 @@
     "DYLD_LIBRARY_PATH": "/opt/homebrew/lib"
   },
   "python": {
-    "path": "/Users/wangzhenbo/code/cursor/txt2img/.venv/bin/python3",
+    "path": "~/.openclaw/venv/bin/python3",
     "dependencies": [
       "weasyprint",
       "PyMuPDF",
