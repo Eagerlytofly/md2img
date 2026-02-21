@@ -49,20 +49,108 @@ hr { border: none; border-top: 2px solid #eaecef; margin: 1.5em 0; }
 strong { font-weight: 700; }
 """
 
+# 手写体/楷体 CSS 样式
+HANDWRITING_CSS = """
+@page { size: 800px; margin: 24px; }
+* { box-sizing: border-box; }
+body {
+  font-family: "Kaiti SC", "STKaiti", "BiauKai", "Kaiti", "Apple Chancery", cursive;
+  font-size: 32px;
+  line-height: 1.8;
+  color: #2c2c2c;
+  max-width: 100%;
+}
+h1 { 
+  font-size: 2.4em; 
+  margin: 0.67em 0; 
+  border-bottom: 3px solid #8b7355; 
+  padding-bottom: 0.3em; 
+  font-weight: 700;
+  text-align: center;
+}
+h2 { 
+  font-size: 2em; 
+  margin: 0.75em 0; 
+  border-bottom: 2px solid #a08060; 
+  padding-bottom: 0.3em; 
+  font-weight: 600; 
+}
+h3 { font-size: 1.6em; margin: 0.83em 0; font-weight: 600; }
+h4, h5, h6 { font-size: 1.3em; margin: 1em 0; font-weight: 600; }
+p { margin: 0.6em 0 1.2em; text-indent: 2em; }
+"""
 
-def _md_to_html(md_content: str, extras: Optional[list] = None) -> str:
+# 沐瑶软笔手写体 CSS 样式
+MUYAO_CSS = """
+@page { size: 800px; margin: 24px; }
+* { box-sizing: border-box; }
+body {
+  font-family: "Muyao-Softbrush", "Muyao Softbrush", "沐瑶软笔手写体";
+  font-size: 34px;
+  line-height: 1.9;
+  color: #2c2c2c;
+  max-width: 100%;
+}
+h1 { 
+  font-size: 2.6em; 
+  margin: 0.67em 0; 
+  border-bottom: 4px solid #e07a5f; 
+  padding-bottom: 0.3em; 
+  font-weight: 700;
+  text-align: center;
+  color: #e07a5f;
+}
+h2 { 
+  font-size: 2.2em; 
+  margin: 0.75em 0; 
+  border-bottom: 3px solid #f2cc8f; 
+  padding-bottom: 0.3em; 
+  font-weight: 600; 
+  color: #d4a373;
+}
+h3 { font-size: 1.8em; margin: 0.83em 0; font-weight: 600; color: #81b29a; }
+h4, h5, h6 { font-size: 1.4em; margin: 1em 0; font-weight: 600; }
+p { margin: 0.6em 0 1.2em; text-indent: 2em; }
+ul, ol { margin: 0.5em 0 1em; padding-left: 2.5em; }
+li { margin: 0.4em 0; }
+code { background: #f4e9d8; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.8em; font-family: "Courier New", monospace; }
+pre { background: #f4e9d8; padding: 1em; border-radius: 6px; overflow: auto; }
+pre code { background: none; padding: 0; }
+blockquote { 
+  border-left: 6px solid #e07a5f; 
+  margin: 1em 0 1.5em; 
+  padding-left: 1.2em; 
+  color: #7d6b5d; 
+  font-size: 1.1em;
+  font-style: italic;
+}
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 2px solid #f2cc8f; padding: 12px 16px; text-align: left; }
+th { font-weight: 600; background: #f4e9d8; color: #e07a5f; }
+a { color: #e07a5f; text-decoration: none; }
+a:hover { text-decoration: underline; }
+hr { border: none; border-top: 3px dashed #f2cc8f; margin: 1.5em 0; }
+strong { font-weight: 700; color: #e07a5f; }
+"""
+
+# 别名
+MUYAO_HANDWRITING_CSS = MUYAO_CSS
+
+
+def _md_to_html(md_content: str, extras: Optional[list] = None, base_css: Optional[str] = None) -> str:
     """Markdown 字符串 → 完整 HTML 文档（带默认样式）。"""
     html_body = markdown.markdown(
         md_content,
         extensions=extras or ["extra", "codehilite", "toc"],
     )
+    css = base_css if base_css else DEFAULT_CSS
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Markdown Export</title>
-  <style>{DEFAULT_CSS}</style>
+  <style>{css}</style>
 </head>
 <body>
 {html_body}
@@ -185,6 +273,7 @@ def convert(
     extra_css: Optional[str] = None,
     md_extras: Optional[list] = None,
     page_size: Optional[Tuple[int, int]] = None,
+    style: str = "default",
 ) -> Union[Path, List[Path]]:
     """
     将 Markdown 字符串转为图片。
@@ -195,12 +284,21 @@ def convert(
     :param extra_css: 额外 CSS 字符串，会与默认样式合并
     :param md_extras: markdown 扩展列表，默认 ["extra", "codehilite", "toc"]
     :param page_size: 固定页尺寸 (宽, 高) px，如小红书 3:4 用 XIAOHONGSHU_3_4；长图会分多张输出
+    :param style: 样式风格："default"（默认现代风格）、"handwriting"（楷体）或 "muyao"（沐瑶软笔）
     :return: 单张时为 Path，多张时为 List[Path]
     """
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    html = _md_to_html(md_content, extras=md_extras)
+    # 根据 style 参数选择 CSS
+    if style == "handwriting":
+        base_css = HANDWRITING_CSS
+    elif style == "muyao":
+        base_css = MUYAO_CSS
+    else:
+        base_css = DEFAULT_CSS
+    
+    html = _md_to_html(md_content, extras=md_extras, base_css=base_css)
     if extra_css:
         html = html.replace("</style>", f"\n{extra_css}\n</style>")
     # 小红书等固定尺寸：把 @page 注入 HTML 末尾，覆盖默认 800px
@@ -227,6 +325,7 @@ def convert_file(
     extra_css: Optional[str] = None,
     md_extras: Optional[list] = None,
     page_size: Optional[Tuple[int, int]] = None,
+    style: str = "default",
 ) -> Union[Path, List[Path]]:
     """
     将 Markdown 文件转为图片。
@@ -238,6 +337,7 @@ def convert_file(
     :param extra_css: 额外 CSS
     :param md_extras: markdown 扩展列表
     :param page_size: 固定页尺寸 (宽, 高) px，长图分多张
+    :param style: 样式风格："default"（默认现代风格）或 "handwriting"（手写楷体风格）
     :return: 单张为 Path，多张为 List[Path]
     """
     md_path = Path(md_path)
@@ -254,6 +354,7 @@ def convert_file(
         extra_css=extra_css,
         md_extras=md_extras,
         page_size=page_size,
+        style=style,
     )
 
 
@@ -279,6 +380,7 @@ def md_to_images(
     backend: str = "weasyprint",
     extra_css: Optional[str] = None,
     md_extras: Optional[list] = None,
+    style: str = "default",
 ) -> List[str]:
     """
     Markdown 文本转图片，返回图片的**绝对路径**列表。
@@ -291,6 +393,7 @@ def md_to_images(
     :param backend: "weasyprint" 或 "imgkit"
     :param extra_css: 额外 CSS
     :param md_extras: markdown 扩展列表
+    :param style: 样式风格："default"（默认现代风格）或 "handwriting"（手写楷体风格）
     :return: 生成图片的绝对路径列表，如 ["/path/to/out_1.png", "/path/to/out_2.png"]
     """
     if page_size is None:
@@ -309,6 +412,7 @@ def md_to_images(
         extra_css=extra_css,
         md_extras=md_extras,
         page_size=page_size,
+        style=style,
     )
     paths = [result] if isinstance(result, Path) else result
     return [str(p.resolve()) for p in paths]

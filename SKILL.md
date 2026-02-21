@@ -104,6 +104,7 @@ paths = md_to_images(
 | `--width` | 自定义宽度（像素） | - |
 | `--height` | 自定义高度（像素） | - |
 | `--css` | 自定义 CSS 文件路径 | - |
+| `--style` | 样式风格：`default`（默认现代风）或 `handwriting`（手写楷体） | `default` |
 
 ### Python API 参数
 
@@ -116,6 +117,7 @@ paths = md_to_images(
 | `backend` | str | 渲染引擎：`weasyprint`（默认）或 `imgkit` |
 | `extra_css` | str | 额外 CSS 样式字符串 |
 | `md_extras` | list | markdown 扩展列表 |
+| `style` | str | 样式风格：`default` 或 `handwriting`（手写楷体） |
 
 ## 预设尺寸
 
@@ -125,6 +127,27 @@ paths = md_to_images(
 | `1:1` | 1080×1080 | 小红书/Instagram 正方形 |
 | `2:3` | 1080×1620 | 小红书长图 |
 | `4:3` | 1440×1080 | 横版 |
+
+### 样式风格
+
+支持两种样式风格：
+
+```python
+from md2img import md_to_images
+
+# 默认现代风格
+paths = md_to_images("# 标题\n内容", style="default")
+
+# 手写楷体风格
+paths = md_to_images("# 标题\n内容", style="handwriting")
+```
+
+**手写体风格特点：**
+- 使用楷体字体（Kaiti SC / STKaiti）
+- 更大的行距和字体
+- 暖色调配色（米色背景、棕色边框）
+- 段落首行缩进
+- 虚线分隔线
 
 ## 使用示例
 
