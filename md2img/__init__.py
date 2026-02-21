@@ -12,6 +12,7 @@ from .converter import (
     XIAOHONGSHU_4_3,
     HANDWRITING_CSS,
     MUYAO_CSS,
+    VIRGIL_CSS,
     convert,
     convert_file,
     md2img,
@@ -29,5 +30,6 @@ __all__ = [
     "XIAOHONGSHU_4_3",
     "HANDWRITING_CSS",
     "MUYAO_CSS",
+    "VIRGIL_CSS",
 ]
 __version__ = "0.1.0"

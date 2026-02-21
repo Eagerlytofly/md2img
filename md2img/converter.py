@@ -133,8 +133,62 @@ hr { border: none; border-top: 3px dashed #f2cc8f; margin: 1.5em 0; }
 strong { font-weight: 700; color: #e07a5f; }
 """
 
+# Virgil 手写体 CSS 样式
+VIRGIL_CSS = """
+@page { size: 800px; margin: 24px; }
+* { box-sizing: border-box; }
+body {
+  font-family: "Virgil", "FSP UppERCASE Sans", sans-serif;
+  font-size: 32px;
+  line-height: 1.85;
+  color: #2d3436;
+  max-width: 100%;
+}
+h1 { 
+  font-size: 2.5em; 
+  margin: 0.67em 0; 
+  border-bottom: 4px solid #6c5ce7; 
+  padding-bottom: 0.3em; 
+  font-weight: 700;
+  text-align: center;
+  color: #6c5ce7;
+}
+h2 { 
+  font-size: 2em; 
+  margin: 0.75em 0; 
+  border-bottom: 3px solid #a29bfe; 
+  padding-bottom: 0.3em; 
+  font-weight: 600; 
+  color: #7c73e6;
+}
+h3 { font-size: 1.6em; margin: 0.83em 0; font-weight: 600; color: #6c5ce7; }
+h4, h5, h6 { font-size: 1.3em; margin: 1em 0; font-weight: 600; }
+p { margin: 0.6em 0 1.2em; text-indent: 2em; }
+ul, ol { margin: 0.5em 0 1em; padding-left: 2.5em; }
+li { margin: 0.4em 0; }
+code { background: #e8e6ff; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.8em; font-family: "Courier New", monospace; }
+pre { background: #e8e6ff; padding: 1em; border-radius: 6px; overflow: auto; }
+pre code { background: none; padding: 0; }
+blockquote { 
+  border-left: 6px solid #6c5ce7; 
+  margin: 1em 0 1.5em; 
+  padding-left: 1.2em; 
+  color: #5f5a7a; 
+  font-size: 1.1em;
+  font-style: italic;
+}
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 2px solid #a29bfe; padding: 12px 16px; text-align: left; }
+th { font-weight: 600; background: #e8e6ff; color: #6c5ce7; }
+a { color: #6c5ce7; text-decoration: none; }
+a:hover { text-decoration: underline; }
+hr { border: none; border-top: 3px dashed #a29bfe; margin: 1.5em 0; }
+strong { font-weight: 700; color: #6c5ce7; }
+"""
+
 # 别名
 MUYAO_HANDWRITING_CSS = MUYAO_CSS
+VIRGIL_HANDWRITING_CSS = VIRGIL_CSS
 
 
 def _md_to_html(md_content: str, extras: Optional[list] = None, base_css: Optional[str] = None) -> str:
@@ -284,7 +338,7 @@ def convert(
     :param extra_css: 额外 CSS 字符串，会与默认样式合并
     :param md_extras: markdown 扩展列表，默认 ["extra", "codehilite", "toc"]
     :param page_size: 固定页尺寸 (宽, 高) px，如小红书 3:4 用 XIAOHONGSHU_3_4；长图会分多张输出
-    :param style: 样式风格："default"（默认现代风格）、"handwriting"（楷体）或 "muyao"（沐瑶软笔）
+    :param style: 样式风格："default"（默认现代风格）、"handwriting"（楷体）、"muyao"（沐瑶软笔）或 "virgil"（Virgil 手写体）
     :return: 单张时为 Path，多张时为 List[Path]
     """
     output_path = Path(output_path)
@@ -295,6 +349,8 @@ def convert(
         base_css = HANDWRITING_CSS
     elif style == "muyao":
         base_css = MUYAO_CSS
+    elif style == "virgil":
+        base_css = VIRGIL_CSS
     else:
         base_css = DEFAULT_CSS
     

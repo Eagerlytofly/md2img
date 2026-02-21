@@ -130,7 +130,7 @@ paths = md_to_images(
 
 ### 样式风格
 
-支持两种样式风格：
+支持多种样式风格：
 
 ```python
 from md2img import md_to_images
@@ -138,16 +138,23 @@ from md2img import md_to_images
 # 默认现代风格
 paths = md_to_images("# 标题\n内容", style="default")
 
-# 手写楷体风格
+# 楷体风格
 paths = md_to_images("# 标题\n内容", style="handwriting")
+
+# 沐瑶软笔手写体风格
+paths = md_to_images("# 标题\n内容", style="muyao")
+
+# Virgil 手写体风格
+paths = md_to_images("# 标题\n内容", style="virgil")
 ```
 
-**手写体风格特点：**
-- 使用楷体字体（Kaiti SC / STKaiti）
-- 更大的行距和字体
-- 暖色调配色（米色背景、棕色边框）
-- 段落首行缩进
-- 虚线分隔线
+**各风格特点：**
+- `default`: 现代简洁，系统字体
+- `handwriting`: 楷体，传统文化风格
+- `muyao`: 沐瑶软笔，暖色调软笔风
+- `virgil`: Virgil 手写体，紫色调现代手写风
+
+> 注意：Virgil 字体需要手动安装。下载 Virgil.ttf 放入 `~/Library/Fonts/` 目录。
 
 ## 使用示例
 
