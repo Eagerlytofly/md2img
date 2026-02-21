@@ -15,6 +15,7 @@ from .converter import (
     VIRGIL_CSS,
     OBSIDIAN_CSS,
     PARCHMENT_CSS,
+    EXCALI_CSS,
     convert,
     convert_file,
     md2img,
@@ -35,5 +36,6 @@ __all__ = [
     "VIRGIL_CSS",
     "OBSIDIAN_CSS",
     "PARCHMENT_CSS",
+    "EXCALI_CSS",
 ]
 __version__ = "0.1.0"

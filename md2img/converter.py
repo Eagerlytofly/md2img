@@ -252,6 +252,67 @@ strong { font-weight: 700; color: #5c3317; }
 # 别名 (保留兼容性)
 OBSIDIAN_CSS = PARCHMENT_CSS
 
+# Excalifont 风格 CSS 样式 (手绘风格)
+EXCALI_CSS = """
+@page { size: 800px; margin: 24px; }
+* { box-sizing: border-box; }
+body {
+  font-family: "Excalifont", "Excalifont-Regular", "Segoe Print", "Bradley Hand", cursive;
+  font-size: 32px;
+  line-height: 1.85;
+  color: #2c3e50;
+  background: linear-gradient(180deg, #faf8f5 0%, #f5f0e8 100%);
+  max-width: 100%;
+  padding: 25px;
+  border: 3px double #5d4e37;
+  border-radius: 8px;
+}
+h1 { 
+  font-size: 2.4em; 
+  margin: 0.6em 0; 
+  border-bottom: 3px double #8b4513; 
+  padding-bottom: 0.3em; 
+  font-weight: 600;
+  text-align: center;
+  color: #8b4513;
+  font-family: "Excalifont", "Excalifont-Regular", cursive;
+}
+h2 { 
+  font-size: 2em; 
+  margin: 0.7em 0; 
+  border-bottom: 2px dashed #a0522d; 
+  padding-bottom: 0.2em; 
+  font-weight: 600; 
+  color: #6b4423;
+  font-family: "Excalifont", "Excalifont-Regular", cursive;
+}
+h3 { font-size: 1.7em; margin: 0.7em 0; font-weight: 600; color: #5d4037; }
+h4, h5, h6 { font-size: 1.4em; margin: 0.7em 0; font-weight: 600; color: #4e342e; }
+p { margin: 0.5em 0 1em; }
+ul, ol { margin: 0.5em 0 1em; padding-left: 2.2em; }
+li { margin: 0.3em 0; }
+code { background: #f0e6d3; padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.85em; color: #5d4037; border: 1px dashed #bcaaa4; font-family: monospace; }
+pre { background: #f5f0e8; padding: 1em; border-radius: 6px; overflow: auto; border: 2px dashed #d7ccc8; }
+pre code { background: none; padding: 0; color: #3e2723; }
+blockquote { 
+  border-left: 5px double #8b4513; 
+  margin: 0.8em 0 1em; 
+  padding-left: 1em; 
+  color: #5d4037; 
+  font-style: italic;
+  background: rgba(139, 69, 19, 0.05);
+  padding: 0.8em;
+  border-radius: 4px;
+}
+table { border-collapse: collapse; width: 100%; margin: 1em 0; border: 2px solid #8b4513; }
+th, td { border: 1px dashed #a1887f; padding: 10px 14px; text-align: left; }
+th { font-weight: 600; background: #efebe9; color: #5d4037; }
+a { color: #8b4513; text-decoration: none; }
+a:hover { text-decoration: underline; }
+hr { border: none; border-top: 3px double #a1887f; margin: 1.5em 0; }
+strong { font-weight: 700; color: #5d4037; }
+"""
+
 # 别名
 MUYAO_HANDWRITING_CSS = MUYAO_CSS
 VIRGIL_HANDWRITING_CSS = VIRGIL_CSS
@@ -405,7 +466,7 @@ def convert(
     :param extra_css: 额外 CSS 字符串，会与默认样式合并
     :param md_extras: markdown 扩展列表，默认 ["extra", "codehilite", "toc"]
     :param page_size: 固定页尺寸 (宽, 高) px，如小红书 3:4 用 XIAOHONGSHU_3_4；长图会分多张输出
-    :param style: 样式风格："default"（默认现代风格）、"handwriting"（楷体）、"muyao"（沐瑶软笔）、"virgil"（Virgil 手写体）或 "obsidian"（Obsidian 深色风格）
+    :param style: 样式风格："default"（默认现代风格）、"handwriting"（楷体）、"muyao"（沐瑶软笔）、"virgil"（Virgil 手写体）、"parchment"（羊皮卷）或 "excali"（Excalifont 手绘风格）
     :return: 单张时为 Path，多张时为 List[Path]
     """
     output_path = Path(output_path)
@@ -422,6 +483,8 @@ def convert(
         base_css = OBSIDIAN_CSS
     elif style == "parchment":
         base_css = PARCHMENT_CSS
+    elif style == "excali":
+        base_css = EXCALI_CSS
     else:
         base_css = DEFAULT_CSS
     
