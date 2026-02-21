@@ -190,12 +190,8 @@ strong { font-weight: 700; color: #6c5ce7; }
 PARCHMENT_CSS = """
 @page { size: 800px; margin: 24px; }
 * { box-sizing: border-box; }
-@font-face {
-  font-family: "Virgil";
-  src: local("Virgil"), local("FSP UppERCASE Sans");
-}
 body {
-  font-family: "Virgil", "FSP UppERCASE Sans", "Humor Sans", sans-serif;
+  font-family: "Excalifont", "Excalifont-Regular", "Segoe Print", "Bradley Hand", cursive;
   font-size: 32px;
   line-height: 1.85;
   color: #1a1a1a;
@@ -213,6 +209,7 @@ h1 {
   text-align: center;
   color: #5c3317;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+  font-family: "Excalifont", "Excalifont-Regular", cursive;
 }
 h2 { 
   font-size: 1.9em; 
@@ -221,9 +218,10 @@ h2 {
   padding-bottom: 0.2em; 
   font-weight: 600; 
   color: #6b3e26;
+  font-family: "Excalifont", "Excalifont-Regular", cursive;
 }
-h3 { font-size: 1.6em; margin: 0.7em 0; font-weight: 600; color: #704214; }
-h4, h5, h6 { font-size: 1.3em; margin: 0.7em 0; font-weight: 600; color: #5c3317; }
+h3 { font-size: 1.6em; margin: 0.7em 0; font-weight: 600; color: #704214; font-family: "Excalifont", "Excalifont-Regular", cursive; }
+h4, h5, h6 { font-size: 1.3em; margin: 0.7em 0; font-weight: 600; color: #5c3317; font-family: "Excalifont", "Excalifont-Regular", cursive; }
 p { margin: 0.5em 0 1em; }
 ul, ol { margin: 0.5em 0 1em; padding-left: 2.2em; }
 li { margin: 0.3em 0; }
