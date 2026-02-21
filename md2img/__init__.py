@@ -13,6 +13,8 @@ from .converter import (
     HANDWRITING_CSS,
     MUYAO_CSS,
     VIRGIL_CSS,
+    OBSIDIAN_CSS,
+    PARCHMENT_CSS,
     convert,
     convert_file,
     md2img,
@@ -31,5 +33,7 @@ __all__ = [
     "HANDWRITING_CSS",
     "MUYAO_CSS",
     "VIRGIL_CSS",
+    "OBSIDIAN_CSS",
+    "PARCHMENT_CSS",
 ]
 __version__ = "0.1.0"

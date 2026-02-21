@@ -186,9 +186,76 @@ hr { border: none; border-top: 3px dashed #a29bfe; margin: 1.5em 0; }
 strong { font-weight: 700; color: #6c5ce7; }
 """
 
+# 羊皮卷风格 CSS 样式 (复古羊皮纸效果)
+PARCHMENT_CSS = """
+@page { size: 800px; margin: 24px; }
+* { box-sizing: border-box; }
+@font-face {
+  font-family: "Virgil";
+  src: local("Virgil"), local("FSP UppERCASE Sans");
+}
+body {
+  font-family: "Virgil", "FSP UppERCASE Sans", "Humor Sans", sans-serif;
+  font-size: 32px;
+  line-height: 1.85;
+  color: #1a1a1a;
+  background: linear-gradient(135deg, #f4e4bc 0%, #e8d4a8 50%, #f0e2c5 100%);
+  max-width: 100%;
+  padding: 30px;
+  box-shadow: inset 0 0 60px rgba(139, 119, 80, 0.2);
+}
+h1 { 
+  font-size: 2.4em; 
+  margin: 0.6em 0; 
+  border-bottom: 3px solid #8b4513; 
+  padding-bottom: 0.3em; 
+  font-weight: 700;
+  text-align: center;
+  color: #5c3317;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+h2 { 
+  font-size: 1.9em; 
+  margin: 0.7em 0; 
+  border-bottom: 2px solid #a0522d; 
+  padding-bottom: 0.2em; 
+  font-weight: 600; 
+  color: #6b3e26;
+}
+h3 { font-size: 1.6em; margin: 0.7em 0; font-weight: 600; color: #704214; }
+h4, h5, h6 { font-size: 1.3em; margin: 0.7em 0; font-weight: 600; color: #5c3317; }
+p { margin: 0.5em 0 1em; }
+ul, ol { margin: 0.5em 0 1em; padding-left: 2.2em; }
+li { margin: 0.3em 0; }
+code { background: rgba(139, 69, 19, 0.1); padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.85em; color: #5c3317; border: 1px solid #d4c4a8; }
+pre { background: rgba(139, 69, 19, 0.08); padding: 1em; border-radius: 6px; overflow: auto; border: 2px solid #c4b490; }
+pre code { background: none; padding: 0; color: #4a3520; }
+blockquote { 
+  border-left: 5px solid #8b4513; 
+  margin: 0.8em 0 1em; 
+  padding-left: 1em; 
+  color: #6b4423; 
+  font-style: italic;
+  background: rgba(139, 69, 19, 0.05);
+  padding: 0.8em;
+  border-radius: 0 8px 8px 0;
+}
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 2px solid #a0522d; padding: 10px 14px; text-align: left; }
+th { font-weight: 600; background: rgba(139, 69, 19, 0.15); color: #5c3317; }
+a { color: #8b4513; text-decoration: none; }
+a:hover { text-decoration: underline; }
+hr { border: none; border-top: 2px dashed #a0522d; margin: 1.5em 0; }
+strong { font-weight: 700; color: #5c3317; }
+"""
+
+# 别名 (保留兼容性)
+OBSIDIAN_CSS = PARCHMENT_CSS
+
 # 别名
 MUYAO_HANDWRITING_CSS = MUYAO_CSS
 VIRGIL_HANDWRITING_CSS = VIRGIL_CSS
+OBSIDIAN_STYLE_CSS = OBSIDIAN_CSS
 
 
 def _md_to_html(md_content: str, extras: Optional[list] = None, base_css: Optional[str] = None) -> str:
@@ -338,7 +405,7 @@ def convert(
     :param extra_css: 额外 CSS 字符串，会与默认样式合并
     :param md_extras: markdown 扩展列表，默认 ["extra", "codehilite", "toc"]
     :param page_size: 固定页尺寸 (宽, 高) px，如小红书 3:4 用 XIAOHONGSHU_3_4；长图会分多张输出
-    :param style: 样式风格："default"（默认现代风格）、"handwriting"（楷体）、"muyao"（沐瑶软笔）或 "virgil"（Virgil 手写体）
+    :param style: 样式风格："default"（默认现代风格）、"handwriting"（楷体）、"muyao"（沐瑶软笔）、"virgil"（Virgil 手写体）或 "obsidian"（Obsidian 深色风格）
     :return: 单张时为 Path，多张时为 List[Path]
     """
     output_path = Path(output_path)
@@ -351,6 +418,10 @@ def convert(
         base_css = MUYAO_CSS
     elif style == "virgil":
         base_css = VIRGIL_CSS
+    elif style == "obsidian":
+        base_css = OBSIDIAN_CSS
+    elif style == "parchment":
+        base_css = PARCHMENT_CSS
     else:
         base_css = DEFAULT_CSS
     
